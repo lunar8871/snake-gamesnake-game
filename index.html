@@ -42,6 +42,11 @@
   </style>
 </head>
 <body>
+<input id="playerName" placeholder="Enter your name" />
+<button onclick="submitMyScore()">Submit Score</button>
+
+<h2>🏆 Leaderboard</h2>
+<ul id="rankingList"></ul>
 
 <div id="scoreBoard">Score: 0 | High Score: 0</div>
 <div id="controls">
@@ -53,13 +58,7 @@
   <button id="startBtn">Start Game</button>
 </div>
 <canvas id="gameCanvas"></canvas>
-
-<div>
-  <input id="playerName" placeholder="Enter your name" style="margin-top:10px; padding:5px; font-size:16px;">
-  <button onclick="submitMyScore()">Submit Score</button>
-</div>
-
-<div id="rankings"><strong>Top 10 Leaderboard</strong><br><ul id="rankingList"></ul></div>
+<div id="rankings"></div>
 
 <audio id="bgm" loop>
   <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_7cb2c6d609.mp3?filename=8-bit-arcade-115111.mp3" type="audio/mp3" />
@@ -69,64 +68,107 @@
 </audio>
 
 <script>
-const SUPABASE_URL = 'https://kfbweiwwygckkpeomczo.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmYndlaXd3eWdja2twZW9tY3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5ODQzNDIsImV4cCI6MjA2MTU2MDM0Mn0.tmp1MpHD1PxXV4cGdG0Hlin7hn81SxsOFRIoknEr1JE';
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreBoard = document.getElementById('scoreBoard');
+const startBtn = document.getElementById('startBtn');
+const bgm = document.getElementById('bgm');
+const eatSound = document.getElementById('eatSound');
+const rankingsEl = document.getElementById('rankings');
+const skinSelect = document.getElementById('skinSelect');
 
-async function submitScore(name, score) {
-  try {
-    await fetch(`${SUPABASE_URL}/rest/v1/scores`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify({ name, score })
-    });
-  } catch (err) {
-    console.error('Submit error:', err);
+const box = 20;
+let cols, rows;
+let snake, food, direction, score, highScore, speed, game, obstacles, directionQueue;
+let headColor = 'limegreen';
+let bodyColor = 'dodgerblue';
+
+function resizeCanvas() {
+  canvas.width = Math.floor(window.innerWidth / box) * box;
+  canvas.height = Math.floor((window.innerHeight - 150) / box) * box;
+  cols = canvas.width / box;
+  rows = canvas.height / box;
+}
+
+function applySkin(skin) {
+  if (skin === 'classic') {
+    headColor = 'limegreen';
+    bodyColor = 'dodgerblue';
+  } else if (skin === 'neon') {
+    headColor = 'cyan';
+    bodyColor = 'magenta';
+  } else if (skin === 'rainbow') {
+    headColor = randomColor();
+    bodyColor = randomColor();
   }
 }
 
-async function loadRanking() {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/scores?select=name,score&order=score.desc&limit=10`, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-      }
-    });
-    return await res.json();
-  } catch (err) {
-    console.error('Load error:', err);
-    return [];
-  }
+function randomColor() {
+  const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+  return colors[Math.floor(Math.random() * colors.length)];
 }
 
-function submitMyScore() {
-  const name = document.getElementById('playerName').value || 'Anonymous';
-  submitScore(name, score).then(loadAndShowRanking);
+function randomPosition() {
+  return {
+    x: Math.floor(Math.random() * cols) * box,
+    y: Math.floor(Math.random() * rows) * box
+  };
 }
 
-function loadAndShowRanking() {
-  loadRanking().then(scores => {
-    const list = document.getElementById('rankingList');
-    if (Array.isArray(scores)) {
-      list.innerHTML = scores.map(s => `<li>${s.name}: ${s.score} pts</li>`).join('');
-    } else {
-      list.innerHTML = '⚠️ Failed to load leaderboard';
+function generateObstacles(n = 5) {
+  let obs = [];
+  while (obs.length < n) {
+    let pos = randomPosition();
+    if (!snake.some(s => s.x === pos.x && s.y === pos.y) &&
+        !(food && food.x === pos.x && food.y === pos.y)) {
+      obs.push(pos);
     }
-  });
+  }
+  return obs;
 }
 
-document.addEventListener('DOMContentLoaded', loadAndShowRanking);
-</script>
+function updateScore() {
+  highScore = Math.max(score, highScore);
+  localStorage.setItem('highScore', highScore);
+  scoreBoard.textContent = `Score: ${score} | High Score: ${highScore}`;
+}
 
-<script>
-// 자동 점수 제출 포함된 스네이크 게임 코드 시작
+function saveRanking(score) {
+  let rankings = JSON.parse(localStorage.getItem('rankings') || '[]');
+  rankings.push({ score, date: new Date().toLocaleString() });
+  rankings.sort((a, b) => b.score - a.score);
+  rankings = rankings.slice(0, 5);
+  localStorage.setItem('rankings', JSON.stringify(rankings));
+}
 
-// ...기존 코드 유지됨...
+function showRankings() {
+  const rankings = JSON.parse(localStorage.getItem('rankings') || '[]');
+  if (rankings.length === 0) return;
+  let html = '<strong>Top 5 Rankings</strong><br>';
+  rankings.forEach((r, i) => {
+    html += `${i + 1}. ${r.score} pts (${r.date})<br>`;
+  });
+  rankingsEl.innerHTML = html;
+}
+
+function startGame() {
+  resizeCanvas();
+  const selectedSkin = skinSelect.value;
+  applySkin(selectedSkin);
+  snake = [{ x: Math.floor(cols / 2) * box, y: Math.floor(rows / 2) * box }];
+  direction = 'RIGHT';
+  directionQueue = [];
+  food = randomPosition();
+  score = 0;
+  speed = 130;
+  highScore = parseInt(localStorage.getItem('highScore')) || 0;
+  obstacles = generateObstacles();
+  updateScore();
+  rankingsEl.innerHTML = '';
+  if (game) clearInterval(game);
+  game = setInterval(draw, speed);
+  bgm.play();
+}
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -163,11 +205,9 @@ function draw() {
     obstacles.some(o => o.x === headX && o.y === headY)
   ) {
     clearInterval(game);
-    alert(`Game Over!
-Score: ${score}`);
+    alert(`Game Over!\nScore: ${score}`);
     saveRanking(score);
     showRankings();
-    if (score > 0) submitMyScore(); // ✅ 자동 제출 (0점일 때는 무시)
     return;
   }
 
@@ -188,7 +228,51 @@ Score: ${score}`);
   snake.unshift({ x: headX, y: headY });
 }
 
-// 기존 코드 유지됨
+function handleDirection(e) {
+  const newDir = {
+    ArrowLeft: 'LEFT',
+    ArrowUp: 'UP',
+    ArrowRight: 'RIGHT',
+    ArrowDown: 'DOWN'
+  }[e.key];
+
+  if (!newDir) return;
+
+  const opposites = {
+    LEFT: 'RIGHT', RIGHT: 'LEFT',
+    UP: 'DOWN', DOWN: 'UP'
+  };
+
+  if (newDir !== opposites[direction]) {
+    if (directionQueue[directionQueue.length - 1] !== newDir) {
+      directionQueue.push(newDir);
+    }
+  }
+}
+
+let startX, startY;
+canvas.addEventListener('touchstart', e => {
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
+});
+
+canvas.addEventListener('touchmove', e => {
+  if (!startX || !startY) return;
+  const dx = e.touches[0].clientX - startX;
+  const dy = e.touches[0].clientY - startY;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 0 && direction !== 'LEFT') directionQueue.push('RIGHT');
+    else if (dx < 0 && direction !== 'RIGHT') directionQueue.push('LEFT');
+  } else {
+    if (dy > 0 && direction !== 'UP') directionQueue.push('DOWN');
+    else if (dy < 0 && direction !== 'DOWN') directionQueue.push('UP');
+  }
+  startX = startY = null;
+});
+
+document.addEventListener('keydown', handleDirection);
+startBtn.addEventListener('click', startGame);
 </script>
+
 </body>
 </html>
