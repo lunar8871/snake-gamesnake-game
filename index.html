@@ -112,7 +112,11 @@ function submitMyScore() {
 function loadAndShowRanking() {
   loadRanking().then(scores => {
     const list = document.getElementById('rankingList');
-    list.innerHTML = scores.map(s => `<li>${s.name}: ${s.score} pts</li>`).join('');
+    if (Array.isArray(scores)) {
+      list.innerHTML = scores.map(s => `<li>${s.name}: ${s.score} pts</li>`).join('');
+    } else {
+      list.innerHTML = '⚠️ Failed to load leaderboard';
+    }
   });
 }
 
