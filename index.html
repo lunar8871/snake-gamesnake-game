@@ -12,7 +12,6 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      overflow: hidden;
     }
     #scoreBoard {
       color: white;
@@ -22,15 +21,12 @@
     #controls {
       display: flex;
       flex-direction: row;
-      flex-wrap: wrap;
-      justify-content: center;
       gap: 10px;
       margin-bottom: 10px;
     }
     select, button {
-      padding: 12px 24px;
-      font-size: 18px;
-      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 16px;
     }
     #rankings {
       color: #ccc;
@@ -41,8 +37,6 @@
     canvas {
       background: #000;
       display: block;
-      max-width: 100vw;
-      max-height: 100vw;
       touch-action: none;
     }
   </style>
@@ -95,9 +89,8 @@ let bodyColor = 'dodgerblue';
 let shapeStyle = 'default';
 
 function resizeCanvas() {
-  const size = Math.min(window.innerWidth, window.innerHeight - 200);
-  canvas.width = Math.floor(size / box) * box;
-  canvas.height = Math.floor(size / box) * box;
+  canvas.width = Math.floor(window.innerWidth / box) * box;
+  canvas.height = Math.floor((window.innerHeight - 150) / box) * box;
   cols = canvas.width / box;
   rows = canvas.height / box;
 }
@@ -121,12 +114,6 @@ function applySkin(skin) {
   } else if (skin === 'ice') {
     headColor = 'lightblue';
     bodyColor = 'white';
-  } else if (skin === 'secret') {
-    headColor = 'gold';
-    bodyColor = 'black';
-  } else if (skin === 'ultra') {
-    headColor = 'white';
-    bodyColor = randomColor();
   }
 }
 
@@ -135,36 +122,13 @@ function randomColor() {
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
-function unlockSkin(level) {
-  if (level === 10 && !localStorage.getItem('secretUnlocked')) {
-    localStorage.setItem('secretUnlocked', 'true');
-    alert('🎉 Secret Skin Unlocked! (Black / Gold)');
-    addSkinOption('secret', 'Secret (Black / Gold)');
-  }
-  if (level === 20 && !localStorage.getItem('ultraUnlocked')) {
-    localStorage.setItem('ultraUnlocked', 'true');
-    alert('🚀 Ultra Skin Unlocked! (White / Rainbow)');
-    addSkinOption('ultra', 'Ultra (White / Rainbow)');
-  }
-}
-
-function addSkinOption(value, label) {
-  const optionExists = [...skinSelect.options].some(opt => opt.value === value);
-  if (!optionExists) {
-    const option = document.createElement('option');
-    option.value = value;
-    option.textContent = label;
-    skinSelect.appendChild(option);
-  }
-}
-
 function randomPosition() {
   return {
     x: Math.floor(Math.random() * cols) * box,
     y: Math.floor(Math.random() * rows) * box
   };
 }
-<script>
+
 function generateObstacles(n = 5) {
   let obs = [];
   while (obs.length < n) {
@@ -283,8 +247,6 @@ function draw() {
   if (headX === food.x && headY === food.y) {
     score++;
     updateScore();
-    if (score === 10) unlockSkin(10);
-    if (score === 20) unlockSkin(20);
     eatSound.pause();
     eatSound.currentTime = 0;
     eatSound.play().catch(e => console.log("Sound error:", e));
@@ -321,12 +283,12 @@ function handleDirection(e) {
   }
 }
 
-// 터치 컨트롤
 let startX, startY;
 canvas.addEventListener('touchstart', e => {
   startX = e.touches[0].clientX;
   startY = e.touches[0].clientY;
 });
+
 canvas.addEventListener('touchmove', e => {
   if (!startX || !startY) return;
   const dx = e.touches[0].clientX - startX;
@@ -343,16 +305,6 @@ canvas.addEventListener('touchmove', e => {
 
 document.addEventListener('keydown', handleDirection);
 startBtn.addEventListener('click', startGame);
-
-// 잠금해제된 스킨을 로딩 시 자동 추가
-window.addEventListener('load', () => {
-  if (localStorage.getItem('secretUnlocked') === 'true') {
-    addSkinOption('secret', 'Secret (Black / Gold)');
-  }
-  if (localStorage.getItem('ultraUnlocked') === 'true') {
-    addSkinOption('ultra', 'Ultra (White / Rainbow)');
-  }
-});
 </script>
 
 </body>
