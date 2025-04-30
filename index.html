@@ -1,5 +1,3 @@
-<!-- 너무 길어 전체 코드는 댓글로 이어서 제공하겠습니다 -->
-<!-- [1/3] -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,6 +12,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      overflow: hidden;
     }
     #scoreBoard {
       color: white;
@@ -23,12 +22,15 @@
     #controls {
       display: flex;
       flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 10px;
       margin-bottom: 10px;
     }
     select, button {
-      padding: 10px 20px;
-      font-size: 16px;
+      padding: 12px 24px;
+      font-size: 18px;
+      border-radius: 8px;
     }
     #rankings {
       color: #ccc;
@@ -39,6 +41,8 @@
     canvas {
       background: #000;
       display: block;
+      max-width: 100vw;
+      max-height: 100vw;
       touch-action: none;
     }
   </style>
@@ -91,8 +95,9 @@ let bodyColor = 'dodgerblue';
 let shapeStyle = 'default';
 
 function resizeCanvas() {
-  canvas.width = Math.floor(window.innerWidth / box) * box;
-  canvas.height = Math.floor((window.innerHeight - 150) / box) * box;
+  const size = Math.min(window.innerWidth, window.innerHeight - 200);
+  canvas.width = Math.floor(size / box) * box;
+  canvas.height = Math.floor(size / box) * box;
   cols = canvas.width / box;
   rows = canvas.height / box;
 }
@@ -159,10 +164,7 @@ function randomPosition() {
     y: Math.floor(Math.random() * rows) * box
   };
 }
-</script>
 <script>
-// [이전 스크립트 이어서 계속]
-
 function generateObstacles(n = 5) {
   let obs = [];
   while (obs.length < n) {
@@ -281,8 +283,8 @@ function draw() {
   if (headX === food.x && headY === food.y) {
     score++;
     updateScore();
-    if (score === 10 || score === 20) unlockSkin(score);
-
+    if (score === 10) unlockSkin(10);
+    if (score === 20) unlockSkin(20);
     eatSound.pause();
     eatSound.currentTime = 0;
     eatSound.play().catch(e => console.log("Sound error:", e));
@@ -296,8 +298,7 @@ function draw() {
 
   snake.unshift({ x: headX, y: headY });
 }
-</script>
-<script>
+
 function handleDirection(e) {
   const newDir = {
     ArrowLeft: 'LEFT',
@@ -320,12 +321,12 @@ function handleDirection(e) {
   }
 }
 
+// 터치 컨트롤
 let startX, startY;
 canvas.addEventListener('touchstart', e => {
   startX = e.touches[0].clientX;
   startY = e.touches[0].clientY;
 });
-
 canvas.addEventListener('touchmove', e => {
   if (!startX || !startY) return;
   const dx = e.touches[0].clientX - startX;
@@ -343,6 +344,7 @@ canvas.addEventListener('touchmove', e => {
 document.addEventListener('keydown', handleDirection);
 startBtn.addEventListener('click', startGame);
 
+// 잠금해제된 스킨을 로딩 시 자동 추가
 window.addEventListener('load', () => {
   if (localStorage.getItem('secretUnlocked') === 'true') {
     addSkinOption('secret', 'Secret (Black / Gold)');
@@ -355,5 +357,3 @@ window.addEventListener('load', () => {
 
 </body>
 </html>
-
-
