@@ -49,14 +49,6 @@
     <option value="classic">Classic (Green / Blue)</option>
     <option value="neon">Neon (Cyan / Magenta)</option>
     <option value="rainbow">Rainbow (Random Colors)</option>
-    <option value="fire">Fire (Orange / Red)</option>
-    <option value="forest">Forest (DarkGreen / LightGreen)</option>
-    <option value="ice">Ice (LightBlue / White)</option>
-  </select>
-  <select id="shapeSelect">
-    <option value="default">Default</option>
-    <option value="eyes">Cute Eyes</option>
-    <option value="tail">Sharp Tail</option>
   </select>
   <button id="startBtn">Start Game</button>
 </div>
@@ -79,14 +71,12 @@ const bgm = document.getElementById('bgm');
 const eatSound = document.getElementById('eatSound');
 const rankingsEl = document.getElementById('rankings');
 const skinSelect = document.getElementById('skinSelect');
-const shapeSelect = document.getElementById('shapeSelect');
 
 const box = 20;
 let cols, rows;
 let snake, food, direction, score, highScore, speed, game, obstacles, directionQueue;
 let headColor = 'limegreen';
 let bodyColor = 'dodgerblue';
-let shapeStyle = 'default';
 
 function resizeCanvas() {
   canvas.width = Math.floor(window.innerWidth / box) * box;
@@ -105,15 +95,6 @@ function applySkin(skin) {
   } else if (skin === 'rainbow') {
     headColor = randomColor();
     bodyColor = randomColor();
-  } else if (skin === 'fire') {
-    headColor = 'orange';
-    bodyColor = 'red';
-  } else if (skin === 'forest') {
-    headColor = 'darkgreen';
-    bodyColor = 'lightgreen';
-  } else if (skin === 'ice') {
-    headColor = 'lightblue';
-    bodyColor = 'white';
   }
 }
 
@@ -144,7 +125,7 @@ function generateObstacles(n = 5) {
 function updateScore() {
   highScore = Math.max(score, highScore);
   localStorage.setItem('highScore', highScore);
-  scoreBoard.textContent = `Score: ${score} | High Score: ${highScore}`;
+  scoreBoard.textContent = Score: ${score} | High Score: ${highScore};
 }
 
 function saveRanking(score) {
@@ -160,7 +141,7 @@ function showRankings() {
   if (rankings.length === 0) return;
   let html = '<strong>Top 5 Rankings</strong><br>';
   rankings.forEach((r, i) => {
-    html += `${i + 1}. ${r.score} pts (${r.date})<br>`;
+    html += ${i + 1}. ${r.score} pts (${r.date})<br>;
   });
   rankingsEl.innerHTML = html;
 }
@@ -168,8 +149,6 @@ function showRankings() {
 function startGame() {
   resizeCanvas();
   const selectedSkin = skinSelect.value;
-  const selectedShape = shapeSelect.value;
-  shapeStyle = selectedShape;
   applySkin(selectedSkin);
   snake = [{ x: Math.floor(cols / 2) * box, y: Math.floor(rows / 2) * box }];
   direction = 'RIGHT';
@@ -198,23 +177,6 @@ function draw() {
     ctx.fillRect(seg.x, seg.y, box, box);
     ctx.strokeStyle = 'white';
     ctx.strokeRect(seg.x, seg.y, box, box);
-
-    if (i === 0 && shapeStyle === 'eyes') {
-      ctx.fillStyle = 'white';
-      ctx.beginPath();
-      ctx.arc(seg.x + box * 0.25, seg.y + box * 0.3, 2, 0, Math.PI * 2);
-      ctx.arc(seg.x + box * 0.75, seg.y + box * 0.3, 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    if (i === snake.length - 1 && shapeStyle === 'tail') {
-      ctx.fillStyle = 'gold';
-      ctx.beginPath();
-      ctx.moveTo(seg.x + box / 2, seg.y + box / 2);
-      ctx.lineTo(seg.x + box, seg.y + box);
-      ctx.lineTo(seg.x, seg.y + box);
-      ctx.fill();
-    }
   });
 
   ctx.fillStyle = 'red';
@@ -238,7 +200,7 @@ function draw() {
     obstacles.some(o => o.x === headX && o.y === headY)
   ) {
     clearInterval(game);
-    alert(`Game Over!\nScore: ${score}`);
+    alert(Game Over!\nScore: ${score});
     saveRanking(score);
     showRankings();
     return;
