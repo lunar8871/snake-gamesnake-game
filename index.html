@@ -163,7 +163,7 @@ function draw() {
 Score: ${score}`);
     saveRanking(score);
     showRankings();
-    submitMyScore(); // ✅ 자동 제출
+    if (score > 0) submitMyScore(); // ✅ 자동 제출 (0점일 때는 무시)
     return;
   }
 
