@@ -1,3 +1,5 @@
+<!-- 너무 길어 전체 코드는 댓글로 이어서 제공하겠습니다 -->
+<!-- [1/3] -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,6 +51,14 @@
     <option value="classic">Classic (Green / Blue)</option>
     <option value="neon">Neon (Cyan / Magenta)</option>
     <option value="rainbow">Rainbow (Random Colors)</option>
+    <option value="fire">Fire (Orange / Red)</option>
+    <option value="forest">Forest (DarkGreen / LightGreen)</option>
+    <option value="ice">Ice (LightBlue / White)</option>
+  </select>
+  <select id="shapeSelect">
+    <option value="default">Default</option>
+    <option value="eyes">Cute Eyes</option>
+    <option value="tail">Sharp Tail</option>
   </select>
   <button id="startBtn">Start Game</button>
 </div>
@@ -71,12 +81,14 @@ const bgm = document.getElementById('bgm');
 const eatSound = document.getElementById('eatSound');
 const rankingsEl = document.getElementById('rankings');
 const skinSelect = document.getElementById('skinSelect');
+const shapeSelect = document.getElementById('shapeSelect');
 
 const box = 20;
 let cols, rows;
 let snake, food, direction, score, highScore, speed, game, obstacles, directionQueue;
 let headColor = 'limegreen';
 let bodyColor = 'dodgerblue';
+let shapeStyle = 'default';
 
 function resizeCanvas() {
   canvas.width = Math.floor(window.innerWidth / box) * box;
@@ -95,6 +107,21 @@ function applySkin(skin) {
   } else if (skin === 'rainbow') {
     headColor = randomColor();
     bodyColor = randomColor();
+  } else if (skin === 'fire') {
+    headColor = 'orange';
+    bodyColor = 'red';
+  } else if (skin === 'forest') {
+    headColor = 'darkgreen';
+    bodyColor = 'lightgreen';
+  } else if (skin === 'ice') {
+    headColor = 'lightblue';
+    bodyColor = 'white';
+  } else if (skin === 'secret') {
+    headColor = 'gold';
+    bodyColor = 'black';
+  } else if (skin === 'ultra') {
+    headColor = 'white';
+    bodyColor = randomColor();
   }
 }
 
@@ -103,12 +130,38 @@ function randomColor() {
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
+function unlockSkin(level) {
+  if (level === 10 && !localStorage.getItem('secretUnlocked')) {
+    localStorage.setItem('secretUnlocked', 'true');
+    alert('🎉 Secret Skin Unlocked! (Black / Gold)');
+    addSkinOption('secret', 'Secret (Black / Gold)');
+  }
+  if (level === 20 && !localStorage.getItem('ultraUnlocked')) {
+    localStorage.setItem('ultraUnlocked', 'true');
+    alert('🚀 Ultra Skin Unlocked! (White / Rainbow)');
+    addSkinOption('ultra', 'Ultra (White / Rainbow)');
+  }
+}
+
+function addSkinOption(value, label) {
+  const optionExists = [...skinSelect.options].some(opt => opt.value === value);
+  if (!optionExists) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    skinSelect.appendChild(option);
+  }
+}
+
 function randomPosition() {
   return {
     x: Math.floor(Math.random() * cols) * box,
     y: Math.floor(Math.random() * rows) * box
   };
 }
+</script>
+<script>
+// [이전 스크립트 이어서 계속]
 
 function generateObstacles(n = 5) {
   let obs = [];
@@ -149,6 +202,8 @@ function showRankings() {
 function startGame() {
   resizeCanvas();
   const selectedSkin = skinSelect.value;
+  const selectedShape = shapeSelect.value;
+  shapeStyle = selectedShape;
   applySkin(selectedSkin);
   snake = [{ x: Math.floor(cols / 2) * box, y: Math.floor(rows / 2) * box }];
   direction = 'RIGHT';
@@ -177,6 +232,23 @@ function draw() {
     ctx.fillRect(seg.x, seg.y, box, box);
     ctx.strokeStyle = 'white';
     ctx.strokeRect(seg.x, seg.y, box, box);
+
+    if (i === 0 && shapeStyle === 'eyes') {
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(seg.x + box * 0.25, seg.y + box * 0.3, 2, 0, Math.PI * 2);
+      ctx.arc(seg.x + box * 0.75, seg.y + box * 0.3, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (i === snake.length - 1 && shapeStyle === 'tail') {
+      ctx.fillStyle = 'gold';
+      ctx.beginPath();
+      ctx.moveTo(seg.x + box / 2, seg.y + box / 2);
+      ctx.lineTo(seg.x + box, seg.y + box);
+      ctx.lineTo(seg.x, seg.y + box);
+      ctx.fill();
+    }
   });
 
   ctx.fillStyle = 'red';
@@ -209,6 +281,8 @@ function draw() {
   if (headX === food.x && headY === food.y) {
     score++;
     updateScore();
+    if (score === 10 || score === 20) unlockSkin(score);
+
     eatSound.pause();
     eatSound.currentTime = 0;
     eatSound.play().catch(e => console.log("Sound error:", e));
@@ -222,7 +296,8 @@ function draw() {
 
   snake.unshift({ x: headX, y: headY });
 }
-
+</script>
+<script>
 function handleDirection(e) {
   const newDir = {
     ArrowLeft: 'LEFT',
@@ -267,7 +342,18 @@ canvas.addEventListener('touchmove', e => {
 
 document.addEventListener('keydown', handleDirection);
 startBtn.addEventListener('click', startGame);
+
+window.addEventListener('load', () => {
+  if (localStorage.getItem('secretUnlocked') === 'true') {
+    addSkinOption('secret', 'Secret (Black / Gold)');
+  }
+  if (localStorage.getItem('ultraUnlocked') === 'true') {
+    addSkinOption('ultra', 'Ultra (White / Rainbow)');
+  }
+});
 </script>
 
 </body>
 </html>
+
+
